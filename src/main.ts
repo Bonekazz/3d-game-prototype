@@ -1,16 +1,18 @@
 import * as THREE from 'three';
 import { FBXLoader, GLTFLoader, OrbitControls } from 'three/examples/jsm/Addons.js';
+import { Entity } from './lib/Engine';
 
-type _3DObject = THREE.Group<THREE.Object3DEventMap>;
+export type _3DObject = THREE.Group<THREE.Object3DEventMap>;
+
+const objs: Entity[] = [];
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xa0a0a0);
 scene.fog = new THREE.Fog(0xa0a0a0, 200, 1000);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
 const camera2 = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera2.position.set(0, 20, 0);  // Camera 2 position (top-down view)
+const camera3 = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 let activeCamera = camera;
 
@@ -128,6 +130,7 @@ fbxLoader.load("resources/military/military.fbx",
     guy = fbx;
     console.log("guy loaded: ", fbx);
     scene.add(fbx);
+    objs.push({id: "adaxa", name: "guy", model: fbx});
 
     mixer = new THREE.AnimationMixer(fbx);
 
@@ -137,6 +140,7 @@ fbxLoader.load("resources/military/military.fbx",
     loadAnimation('resources/military/L-turn.fbx', "turn-l");
     loadAnimation('resources/military/R-turn.fbx', "turn-r");
     loadAnimation('resources/military/running.fbx', "run");
+    loadAnimation('resources/military/capo.fbx', "capo");
     loadAnimation('resources/military/idle.fbx', "idle");
   }, 
   (xhr) => {
@@ -207,6 +211,8 @@ document.addEventListener('keyup', (event) => {
   isShifting = event.shiftKey;
 });
 
+
+let isCapo = false;
 function updateMovement(model: _3DObject, delta: number) {
   if (!model) return; // Wait until model is loaded
 
@@ -230,7 +236,6 @@ function updateMovement(model: _3DObject, delta: number) {
   };
 
 
-
   if (keys['s']) {
     setActiveAction("backwards");
     model.position.add(forward.multiplyScalar(-backwardsSpeed * delta));
@@ -249,12 +254,17 @@ function updateMovement(model: _3DObject, delta: number) {
 
   if (keys["1"]) activeCamera = camera;
   if (keys["2"]) activeCamera = camera2;
+  if (keys["3"]) activeCamera = camera3;
+
+  // if (keys["c"]) isCapo = !isCapo;
+  // if (isCapo) setActiveAction("capo");
 
   if (
     !keys["a"] &&
     !keys["d"] &&
     !keys["w"] &&
-    !keys["s"]
+    !keys["s"] // &&
+    // !isCapo
   ) setActiveAction("idle");
 
 }
@@ -267,17 +277,16 @@ if (guy) {
   const guyPos = new THREE.Vector3();
   guy.getWorldPosition(guyPos);
 
+  const { x, y, z } = guyPos;
+  const { x: rotx, y: roty, z: rotz } = guy.position;
+
   // Update camera position based on the model's position
-  camera2.position.x = guy.position.x;
-  camera2.position.y = guy.position.y - 1;
-  camera2.position.z = guy.position.z - 3;
+  camera3.position.set(x, y + 0.5, z - 0.8)
+  camera3.rotation.set(rotx, roty + 1, rotz);
 
-  camera2.rotation.x = guy.rotation.x;
-  camera2.rotation.y = guy.rotation.y;
-  camera2.rotation.z = guy.rotation.z;
+  camera2.position.set(x, y + 2, z);
+  camera2.rotation.set(rotx, roty, rotz + 0.8);
 
-  // Make the camera look at the model 
-  camera2.lookAt(guyPos);
 }
 
 function animate() {
@@ -300,6 +309,7 @@ function animate() {
     const guyPos = new THREE.Vector3();
     guy.getWorldPosition(guyPos);
     camera2.lookAt(guyPos);
+    camera3.lookAt(guyPos);
   }
 
 
